@@ -303,10 +303,22 @@
     api('mail-config', mailPayload()).then(function () { return api('mail-test', {}); })
       .then(function (r) { d(); toast('Email de test envoyé à ' + r.to + '. Vérifiez votre boîte (et les spams).', 'ok'); load(); }, function (e) { d(); fail(e); load(); });
   });
+  var msPoll = 0;
   $('msLogin').addEventListener('click', function () {
-    var d = busy(this, 'Connexion dans le navigateur…');
-    api('mail-config', mailPayload()).then(function () { return api('ms-login'); })
-      .then(function (r) { d(); toast('Connecté : ' + r.account, 'ok'); load(); }, function (e) { d(); fail(e); });
+    var btn = this;
+    clearInterval(msPoll);
+    api('mail-config', mailPayload()).then(function () { return api('ms-login'); }).then(function () {
+      btn.textContent = 'Connexion en cours… (cliquer pour relancer)';
+      toast('Connectez-vous dans la fenêtre du navigateur qui vient de s’ouvrir. En cas de souci avec la clé d’accès, choisissez « Autres moyens de se connecter ».', 'ok');
+      var start = Date.now();
+      msPoll = setInterval(function () {
+        api('ms-status').then(function (r) {
+          if (r.state === 'ok') { clearInterval(msPoll); btn.textContent = 'Se connecter avec Microsoft'; toast('Connecté : ' + r.account, 'ok'); load(); }
+          else if (r.state === 'error') { clearInterval(msPoll); btn.textContent = 'Se connecter avec Microsoft'; toast(r.error || 'Connexion Microsoft impossible.', 'err'); }
+          else if (Date.now() - start > 330000) { clearInterval(msPoll); btn.textContent = 'Se connecter avec Microsoft'; toast('Connexion expirée : réessayez.', 'err'); }
+        }).catch(function () {});
+      }, 1500);
+    }, fail);
   });
   $('msLogout').addEventListener('click', function () { api('ms-logout').then(function () { toast('Compte Microsoft déconnecté.', 'ok'); load(); }, fail); });
 

@@ -203,15 +203,34 @@ class Api:
         service.send_test(b, to)
         return {"to": to}
 
+    # Connexion Microsoft en arrière-plan : l'interface interroge ms-status et peut relancer à tout moment.
+    _ms = {"state": "idle", "error": "", "account": "", "gen": None}
+
     def ms_login(self, _):
         b = store.Bailleur.load()
-        try:
-            b.ms_account = mailer.ms_login(b)
-        except mailer.MailError as e:
-            raise service.ServiceError(str(e))
-        b.mail_provider = "outlook"
-        b.save()
-        return {"account": b.ms_account}
+        if not mailer.ms_client_id(b):
+            raise service.ServiceError("Identifiant d’application Microsoft manquant.")
+        gen = object()
+        Api._ms.update(state="pending", error="", account="", gen=gen)
+
+        def run():
+            try:
+                account = mailer.ms_login(b)
+                if Api._ms["gen"] is gen:
+                    cur = store.Bailleur.load()
+                    cur.ms_account, cur.mail_provider = account, "outlook"
+                    cur.save()
+                    Api._ms.update(state="ok", account=account)
+            except Exception as e:  # noqa: BLE001
+                log.warning("Connexion Microsoft : %s", e)
+                if Api._ms["gen"] is gen:
+                    Api._ms.update(state="error", error=str(e))
+
+        threading.Thread(target=run, daemon=True).start()
+        return {"state": "pending"}
+
+    def ms_status(self, _):
+        return {k: Api._ms[k] for k in ("state", "error", "account")}
 
     def ms_logout(self, _):
         b = store.Bailleur.load()
