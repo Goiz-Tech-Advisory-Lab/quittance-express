@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+# Build
+build/
+dist/
+*.spec.bak
+# Données locales — ne jamais publier
+.quittance-home/
+*.pdf
+*.eml
+*.ics
+msal_cache.bin
+signature.png
+bailleur.json
+baux.json
+historique.json
+sauvegarde-*.json
+# Divers
+.DS_Store
+Thumbs.db
+*.log
+logs/
+webview/
+*.corrompu-*
+*.lock

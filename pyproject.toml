@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quittance-express"
+version = "0.1.0"
+description = "Quittances de loyer : génération PDF, envoi par email depuis votre boîte, envoi automatique mensuel."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Goiz Tech Advisory" }]
+requires-python = ">=3.11"
+dependencies = [
+  "fpdf2>=2.8",
+  "pypdfium2>=4.30",
+  "Pillow>=10",
+  "keyring>=25",
+  "msal>=1.31",
+  "msal-extensions>=1.2",
+  "pywebview>=5.3; sys_platform == 'win32'",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "aiosmtpd>=1.4", "playwright>=1.45"]
+
+[project.scripts]
+quittance-express = "quittance.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+quittance = ["ui/*", "assets/fonts/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

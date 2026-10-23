@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quittance Express</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="bg-orbs"><div class="orb orb-1"></div><div class="orb orb-2"></div></div>
+  <div class="shell">
+    <aside class="side">
+      <div class="brand">Quittance <span>Express</span></div>
+      <nav class="nav" id="nav">
+        <button data-view="dash" class="on"><i>◫</i>Tableau de bord</button>
+        <button data-view="baux"><i>⌂</i>Baux &amp; locataires</button>
+        <button data-view="bailleur"><i>✎</i>Bailleur &amp; signature</button>
+        <button data-view="mail"><i>✉</i>Messagerie<b class="dot" id="navMailDot" hidden></b></button>
+        <button data-view="auto"><i>⟳</i>Envoi automatique</button>
+        <button data-view="hist"><i>☰</i>Historique</button>
+      </nav>
+      <div class="side-foot">
+        <span id="version"></span> · <a href="#" id="openArchive">Dossier des quittances</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- ============ TABLEAU DE BORD ============ -->
+      <section class="view on" id="v-dash">
+        <header class="vh">
+          <div>
+            <h1>Quittances de <span class="grad" id="dashMonthLabel"></span></h1>
+            <p class="sub">Aperçu, envoi et suivi de chaque bail pour le mois choisi.</p>
+          </div>
+          <div class="month-pick">
+            <button class="btn btn-ghost btn-icon" id="mPrev" aria-label="Mois précédent">‹</button>
+            <input type="month" id="dashMonth" aria-label="Mois">
+            <button class="btn btn-ghost btn-icon" id="mNext" aria-label="Mois suivant">›</button>
+          </div>
+        </header>
+        <div id="alerts"></div>
+        <div id="dashList" class="cards"></div>
+      </section>
+
+      <!-- ============ BAUX ============ -->
+      <section class="view" id="v-baux">
+        <header class="vh">
+          <div><h1>Baux &amp; locataires</h1><p class="sub">Un bail par logement loué. Les informations sont reprises chaque mois.</p></div>
+          <div class="row-gap">
+            <button class="btn btn-ghost" id="importBtn">Importer (.json)</button>
+            <input type="file" id="importFile" accept=".json,application/json" hidden>
+            <button class="btn btn-primary" id="newBail">+ Nouveau bail</button>
+          </div>
+        </header>
+        <div class="split-2">
+          <div>
+            <div id="bauxList" class="list"></div>
+            <form class="card" id="bailForm" autocomplete="off" hidden>
+              <h2 id="bailFormTitle">Bail</h2>
+              <input type="hidden" name="id">
+              <div class="grid2">
+                <label>Prénom du locataire<input name="loc_prenom" placeholder="Marie"></label>
+                <label>Nom du locataire <em>*</em><input name="loc_nom" placeholder="Martin"></label>
+              </div>
+              <label>Email du locataire<input name="loc_email" type="email" placeholder="marie.martin@email.fr"></label>
+              <label class="check consent"><input type="checkbox" name="accord_email"><span>Le locataire a donné son <b>accord exprès</b> pour recevoir ses quittances par email (obligatoire pour l’envoi — art. 21 de la loi du 6 juillet 1989)</span></label>
+              <label>Adresse du logement loué <em>*</em><textarea name="logement_adresse" rows="2" placeholder="3 avenue Jean Jaurès, appt 24&#10;69007 Lyon"></textarea></label>
+              <div class="grid3">
+                <label>Loyer hors charges (€) <em>*</em><input name="loyer" inputmode="decimal" placeholder="750,00"></label>
+                <label>Charges (€)<input name="charges" inputmode="decimal" placeholder="0,00"></label>
+                <label>Total<output id="bailTotal" class="total-out">0,00 €</output></label>
+              </div>
+              <p class="words" id="bailWords"></p>
+              <label>Nature des charges
+                <select name="type_charges"><option value="provision">Provision pour charges (régularisation annuelle)</option><option value="forfait">Forfait de charges</option></select></label>
+              <div class="grid3">
+                <label>Mode de paiement
+                  <select name="mode_paiement">
+                    <option value="">— Non précisé —</option><option value="virement">Virement</option><option value="prélèvement">Prélèvement</option><option value="chèque">Chèque</option><option value="espèces">Espèces</option>
+                  </select></label>
+                <label title="Imprimée sur les quittances envoyées manuellement ; jamais sur les envois automatiques">Date de paiement habituelle<select name="jour_paiement" id="jourPaiement"></select></label>
+                <label>Premier mois quittancé<input name="debut" type="month"></label>
+              </div>
+              <div class="auto-box">
+                <label class="switch"><input type="checkbox" name="auto"><span></span> Envoi automatique chaque mois</label>
+                <label class="inline">le <select name="jour_envoi" id="jourEnvoi"></select> du mois</label>
+                <p class="hint">Désactivé par défaut. Une quittance prouve que le loyer a été payé : ne l’activez que si le loyer arrive de façon fiable avant cette date. Nécessite l’email et l’accord du locataire.</p>
+              </div>
+              <label class="switch"><input type="checkbox" name="actif" checked><span></span> Bail en cours</label>
+              <div class="form-actions">
+                <button type="button" class="btn btn-danger" id="bailDelete">Supprimer</button>
+                <span class="grow"></span>
+                <button type="button" class="btn btn-ghost" id="bailCancel">Annuler</button>
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+              </div>
+            </form>
+          </div>
+          <div class="preview-col">
+            <div class="preview-head"><b>Aperçu</b><small id="previewMonthLabel"></small></div>
+            <div class="paper" id="bailPreview"><div class="paper-empty">Sélectionnez ou créez un bail pour voir la quittance.</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ BAILLEUR ============ -->
+      <section class="view" id="v-bailleur">
+        <header class="vh"><div><h1>Bailleur &amp; signature</h1><p class="sub">Ces informations figurent sur toutes les quittances.</p></div></header>
+        <div class="split-2">
+          <form class="card" id="bailleurForm" autocomplete="off">
+            <label>Nom ou raison sociale <em>*</em><input name="nom" placeholder="Jean Dupont / SCI Les Tilleuls"></label>
+            <label>Adresse<textarea name="adresse" rows="2" placeholder="12 rue des Lilas&#10;75011 Paris"></textarea></label>
+            <div class="grid2">
+              <label>Votre email<input name="email" type="email" placeholder="vous@email.fr"></label>
+              <label>Ville (« Fait à … »)<input name="ville" placeholder="Paris"></label>
+            </div>
+            <label class="switch"><input type="checkbox" name="copie_bailleur" checked><span></span> Recevoir une copie de chaque quittance envoyée</label>
+            <div class="form-actions"><span class="grow"></span><button class="btn btn-primary" type="submit">Enregistrer</button></div>
+          </form>
+          <div class="card">
+            <h2>Signature</h2>
+            <div class="sig-row">
+              <div class="sig-box" id="sigBox"><span>Aucune signature</span></div>
+              <div class="col-gap">
+                <button class="btn btn-ghost" id="sigBtn" type="button">Importer une image…</button>
+                <input type="file" id="sigFile" accept="image/png,image/jpeg,image/webp" hidden>
+                <label class="check"><input type="checkbox" id="sigTransparent" checked> Rendre le fond transparent</label>
+                <button class="btn btn-danger btn-sm" id="sigDelete" type="button" hidden>Retirer</button>
+              </div>
+            </div>
+            <p class="hint">PNG ou JPG, signature foncée sur fond blanc de préférence.</p>
+            <h2 class="mt">Sauvegarde</h2>
+            <p class="hint">Exportez vos données (bailleur, baux, signature — sans mot de passe) pour les conserver ou les transférer sur un autre PC.</p>
+            <div class="row-gap"><button class="btn btn-ghost" id="exportBtn" type="button">Exporter une sauvegarde</button></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ MESSAGERIE ============ -->
+      <section class="view" id="v-mail">
+        <header class="vh"><div><h1>Messagerie</h1><p class="sub">Les quittances partent de votre propre boîte email, avec le PDF en pièce jointe.</p></div></header>
+        <div class="card mail-card">
+          <label>Votre messagerie<select id="mailProvider"></select></label>
+          <p class="hint" id="mailHelp"></p>
+          <div id="smtpFields">
+            <div class="grid3" id="customFields">
+              <label>Serveur SMTP<input id="smtpHost" placeholder="smtp.exemple.fr"></label>
+              <label>Port<input id="smtpPort" inputmode="numeric" placeholder="465"></label>
+              <label>Sécurité<select id="smtpSecurity"><option value="ssl">SSL/TLS</option><option value="starttls">STARTTLS</option></select></label>
+            </div>
+            <div class="grid2">
+              <label>Adresse email / identifiant<input id="smtpUser" type="email" placeholder="vous@email.fr" autocomplete="off"></label>
+              <label>Mot de passe <span id="pwdState" class="pill"></span><input id="smtpPwd" type="password" autocomplete="new-password" placeholder="••••••••"></label>
+            </div>
+            <label>Adresse d’expédition (si différente de l’identifiant)<input id="fromEmail" type="email" placeholder="facultatif"></label>
+            <p class="hint">Le mot de passe est enregistré dans le Gestionnaire d’identifiants Windows, jamais dans un fichier.</p>
+          </div>
+          <div id="msFields" hidden>
+            <label>Identifiant d’application Microsoft (client ID)<input id="msClientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></label>
+            <p class="hint" id="msClientHint">Fourni avec l’appli. À renseigner seulement si vous utilisez votre propre inscription Microsoft.</p>
+            <div class="row-gap"><span id="msAccount" class="pill"></span>
+              <button class="btn btn-teal" id="msLogin" type="button">Se connecter avec Microsoft</button>
+              <button class="btn btn-ghost" id="msLogout" type="button" hidden>Déconnecter</button></div>
+          </div>
+          <div class="form-actions">
+            <span id="mailState" class="pill"></span><span class="grow"></span>
+            <button class="btn btn-ghost" id="mailTest" type="button">Envoyer un email de test</button>
+            <button class="btn btn-primary" id="mailSave" type="button">Enregistrer</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ ENVOI AUTOMATIQUE ============ -->
+      <section class="view" id="v-auto">
+        <header class="vh"><div><h1>Envoi automatique</h1><p class="sub">Chaque mois, les quittances des baux en mode automatique partent seules, même appli fermée.</p></div></header>
+        <div class="split-2">
+          <div class="card">
+            <h2>Planification Windows</h2>
+            <p id="planifState" class="pill"></p>
+            <div class="grid2">
+              <label>Vérification quotidienne à<select id="planifHour"></select></label>
+            </div>
+            <p class="hint">L’appli vérifie chaque jour (et à l’ouverture de session) s’il y a des quittances à envoyer. PC éteint à l’heure prévue : la vérification a lieu au prochain démarrage.</p>
+            <div class="form-actions">
+              <button class="btn btn-danger" id="planifOff" type="button" hidden>Désactiver</button><span class="grow"></span>
+              <button class="btn btn-ghost" id="runNow" type="button">Vérifier maintenant</button>
+              <button class="btn btn-primary" id="planifOn" type="button">Activer la planification</button>
+            </div>
+          </div>
+          <div class="card warn-card">
+            <h2>Garde-fous</h2>
+            <ul class="bullets">
+              <li>Activé <b>bail par bail</b> (fiche du bail), désactivé par défaut.</li>
+              <li>Envoi à partir du jour choisi (10 par défaut) — un 29, 30 ou 31 devient le dernier jour des mois courts.</li>
+              <li><b>Jamais deux envois</b> pour un même bail et un même mois.</li>
+              <li>Loyer en retard ? Bouton <b>« Loyer non reçu »</b> dans le tableau de bord : le mois n’est pas envoyé.</li>
+              <li>Mois passés non envoyés : signalés, jamais rattrapés automatiquement.</li>
+              <li>Copie systématique au bailleur (réglable).</li>
+            </ul>
+            <p class="hint">Une quittance atteste le paiement du loyer : n’automatisez que les baux dont le loyer arrive de façon fiable avant la date d’envoi.</p>
+          </div>
+        </div>
+        <div class="card"><h2>Baux en envoi automatique</h2><div id="autoList" class="list"></div></div>
+      </section>
+
+      <!-- ============ HISTORIQUE ============ -->
+      <section class="view" id="v-hist">
+        <header class="vh"><div><h1>Historique</h1><p class="sub">Quittances générées, envoyées, suspendues — les PDF sont archivés dans vos Documents.</p></div>
+          <button class="btn btn-ghost" id="openArchive2">Ouvrir le dossier</button></header>
+        <div class="card"><table class="tbl" id="histTable"><thead><tr><th>Date</th><th>Locataire</th><th>Mois</th><th>Statut</th><th>Origine</th><th></th></tr></thead><tbody></tbody></table>
+          <p class="hint" id="histEmpty">Aucune quittance pour l’instant.</p></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Aperçu plein écran -->
+  <div class="modal" id="previewModal" hidden>
+    <div class="modal-box modal-preview">
+      <div class="modal-head"><b id="pmTitle"></b><button class="btn btn-ghost btn-icon" data-close aria-label="Fermer">✕</button></div>
+      <div class="modal-body"><img id="pmImg" alt="Aperçu de la quittance"></div>
+      <div class="modal-foot"><span class="grow"></span>
+        <button class="btn btn-ghost" id="pmPdf">Ouvrir le PDF</button>
+        <button class="btn btn-teal" id="pmSend">Envoyer par email</button></div>
+    </div>
+  </div>
+  <!-- Confirmation -->
+  <div class="modal" id="askModal" hidden>
+    <div class="modal-box modal-ask">
+      <div class="modal-head"><b id="askTitle"></b></div>
+      <div class="modal-body" id="askBody"></div>
+      <div class="modal-foot"><span class="grow"></span><button class="btn btn-ghost" id="askNo">Annuler</button><button class="btn btn-primary" id="askYes">Confirmer</button></div>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
