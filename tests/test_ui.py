@@ -50,7 +50,7 @@ def test_full_flow(ui, tmp_path):
     page.fill("#bailleurForm [name=email]", "proprio@test.fr")
     page.fill("#bailleurForm [name=ville]", "Paris")
     page.click("#bailleurForm [type=submit]")
-    page.wait_for_selector("#toast.show.ok")
+    expect(page.locator("#toast")).to_contain_text("Bailleur enregistré")
     from PIL import Image, ImageDraw
     sig = tmp_path / "sig.png"
     im = Image.new("RGB", (600, 200), "white")
@@ -58,6 +58,7 @@ def test_full_flow(ui, tmp_path):
     im.save(sig)
     page.set_input_files("#sigFile", str(sig))
     page.wait_for_selector("#sigBox img")
+    expect(page.locator("#toast")).to_contain_text("Signature enregistrée")
     shot(page, "02-bailleur")
 
     # Nouveau bail + aperçu
@@ -81,7 +82,7 @@ def test_full_flow(ui, tmp_path):
     shot(page, "03-avertissement-auto")
     page.click("#askYes")
     page.click("#bailForm [type=submit]")
-    page.wait_for_selector("#toast.show.ok")
+    expect(page.locator("#toast")).to_contain_text("Bail enregistré", timeout=15000)
     shot(page, "04-bail")
     bail = store.load_baux()[0]
     assert bail.auto and bail.accord_email and bail.jour_envoi == 10 and bail.loyer == 85050

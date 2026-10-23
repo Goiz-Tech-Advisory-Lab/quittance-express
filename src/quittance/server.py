@@ -291,7 +291,10 @@ class Handler(BaseHTTPRequestHandler):
                          "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; "
                          "connect-src 'self'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'")
         self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionError):  # la page a abandonné la requête (ex. aperçu remplacé)
+            pass
 
     def _json(self, code: int, obj):
         self._send(code, json.dumps(obj, ensure_ascii=False).encode(), "application/json; charset=utf-8")
@@ -334,6 +337,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(200, {"ok": True, **(res or {})})
         except (service.ServiceError, store.StoreError) as e:
             return self._json(400, {"ok": False, "error": str(e)})
+        except (BrokenPipeError, ConnectionError):
+            return None
         except Exception as e:  # noqa: BLE001
             log.exception("Erreur API %s", path)
             return self._json(500, {"ok": False, "error": f"Erreur inattendue : {e}"})
