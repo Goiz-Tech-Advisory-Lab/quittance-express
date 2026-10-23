@@ -91,7 +91,8 @@ Architecture : Python (génération PDF `fpdf2`, aperçu `pypdfium2`), serveur H
 ### Outlook / Microsoft 365 : identifiant d’application
 
 L’envoi via Outlook utilise Microsoft Graph (`Mail.Send`, autorisation déléguée) avec une application Entra « client public ».
-L’identifiant (non secret) est défini dans `src/quittance/mailer.py` (`DEFAULT_MS_CLIENT_ID`) et peut être remplacé dans l’écran **Messagerie**.
+L’application « Quittance Express » (identifiant public `9feee9ab-9170-4acd-bf6f-6b9cb624341c`, défini dans `src/quittance/mailer.py`) est fournie : rien à configurer. L’identifiant peut être remplacé dans l’écran **Messagerie** par celui de votre propre inscription.
+Tant que la vérification d’éditeur Microsoft n’est pas faite, l’écran de connexion affiche « éditeur non vérifié » ; certaines organisations Microsoft 365 exigent alors l’accord de leur administrateur.
 Pour créer le vôtre : Entra → Inscriptions d’applications → comptes organisationnels **et** personnels, URI de redirection *Client public* `http://localhost`, « Autoriser les flux clients publics » = Oui, autorisation déléguée Microsoft Graph `Mail.Send`.
 
 ## Avertissement

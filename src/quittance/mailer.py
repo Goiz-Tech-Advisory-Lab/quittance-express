@@ -38,7 +38,7 @@ PRESETS = {
 GRAPH_SCOPES = ["Mail.Send"]
 AUTHORITY = "https://login.microsoftonline.com/common"
 # Identifiant public de l'application Microsoft « Quittance Express » (non secret).
-DEFAULT_MS_CLIENT_ID = ""
+DEFAULT_MS_CLIENT_ID = "9feee9ab-9170-4acd-bf6f-6b9cb624341c"
 
 
 class MailError(Exception):
