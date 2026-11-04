@@ -131,3 +131,23 @@ def test_full_flow(ui, tmp_path):
     assert page.locator("#autoList .li").count() == 1
     shot(page, "10-envoi-auto")
     assert errors == []
+
+
+def test_restauration_coupe_l_auto_et_alerte(ui, tmp_path):
+    import json
+
+    from quittance import importer, paths, store
+
+    page, _, errors = ui
+    store.upsert_bail(store.Bail(id="a" * 12, loc_nom="Martin", loc_email="m@test.fr", accord_email=True, auto=True, debut="2026-01"))
+    backup = tmp_path / "sauvegarde.json"
+    backup.write_text(json.dumps(importer.export_backup()), encoding="utf-8")
+
+    # historique illisible : l'interface reste utilisable pour restaurer
+    (paths.data_dir() / "historique.json").write_text("{ cassé", encoding="utf-8")
+    page.reload()
+    page.set_input_files("#importFile", str(backup))
+    expect(page.locator(".alert", has_text="Envoi automatique coupé par la restauration")).to_be_visible()
+    assert "Martin" in page.locator(".alert", has_text="coupé par la restauration").inner_text()
+    assert store.get_bail("a" * 12).auto is False
+    assert [e for e in errors if "Failed to load resource" not in e] == []  # le 1er chargement répond 400

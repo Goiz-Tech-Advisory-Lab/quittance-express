@@ -74,6 +74,8 @@ def bail_from(d: dict, base: Bail | None = None) -> Bail:
     for k in ("actif", "auto", "accord_email"):
         if k in d:
             setattr(b, k, d[k] is True)
+    if "auto" in d:  # choix explicite : l'alerte de restauration n'a plus lieu d'être
+        b.auto_a_reactiver = False
     if b.loc_email and not valid_email(b.loc_email):
         raise ServiceError("Email du locataire invalide.")
     if b.auto and not (b.loc_email and b.accord_email):

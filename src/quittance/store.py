@@ -41,6 +41,10 @@ class StoreError(Exception):
     """Données illisibles ou occupées : message présentable à l'utilisateur."""
 
 
+class CorruptDataError(StoreError):
+    """Fichier présent mais invalide (à distinguer d'un fichier momentanément inaccessible)."""
+
+
 # ---------------------------------------------------------------- verrou inter-processus
 
 def _os_lock(f, blocking: bool) -> bool:
@@ -129,8 +133,8 @@ def _read(name: str, default):
         try:
             return json.loads(raw)
         except ValueError as e:
-            raise StoreError(f"Le fichier de données « {name} » est illisible. Restaurez une sauvegarde "
-                             f"(Bailleur & signature → Sauvegarde) ou supprimez-le.") from e
+            raise CorruptDataError(f"Le fichier de données « {name} » est illisible. Restaurez une sauvegarde "
+                                   f"(Baux → Importer) : aucun envoi automatique ne partira d’ici là.") from e
     raise StoreError(f"Le fichier « {name} » est inaccessible pour le moment ({last}). Réessayez.")
 
 
@@ -153,6 +157,21 @@ def _write(name: str, data) -> None:
     finally:
         if os.path.exists(tmp):
             os.remove(tmp)
+
+
+def quarantine_corrupt(names: tuple[str, ...] = ("bailleur.json", "baux.json", "historique.json")) -> list[str]:
+    """Met de côté les fichiers illisibles (jamais supprimés) ; rend les noms concernés. Un fichier
+    momentanément inaccessible lève StoreError : rien n'est alors touché."""
+    bad = []
+    with file_lock():
+        for name in names:
+            try:
+                _read(name, None)
+            except CorruptDataError:
+                bad.append(name)
+        for name in bad:
+            os.replace(paths.data_dir() / name, paths.data_dir() / f"{name}.corrompu-{datetime.now():%Y%m%d-%H%M%S}")
+    return bad
 
 
 def _clean(cls, raw: dict) -> dict:
@@ -202,6 +221,7 @@ class Bail:
     actif: bool = True
     accord_email: bool = False  # accord exprès du locataire pour l'envoi dématérialisé (art. 21)
     auto: bool = False        # envoi automatique (désactivé par défaut)
+    auto_a_reactiver: bool = False  # automatique coupé par une restauration, en attente d'une décision
     jour_envoi: int = DEFAULT_SEND_DAY
     note: str = ""
 
@@ -277,6 +297,21 @@ def remove_history(entry_id: str) -> bool:
         kept = [e for e in h if e.get("id") != entry_id]
         _write("historique.json", kept)
         return len(kept) != len(h)
+
+
+def merge_history(entries: list[dict[str, Any]]) -> int:
+    """Ajoute les entrées inconnues (par id, l'existant fait foi) en gardant l'ordre chronologique."""
+    with file_lock():
+        h = load_history()
+        known = {e.get("id") for e in h}
+        new = []
+        for e in entries:
+            if e["id"] not in known:
+                known.add(e["id"])
+                new.append(e)
+        if new:
+            _write("historique.json", sorted(h + new, key=lambda e: str(e.get("date") or "")))
+        return len(new)
 
 
 def month_status(bail_id: str, mois: str) -> dict[str, Any] | None:

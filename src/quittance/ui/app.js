@@ -66,6 +66,8 @@
     if (!s.mail_ok) al.push(['<b>Messagerie non configurée</b> : l’envoi par email est indisponible.', 'mail', 'Configurer']);
     var autos = s.baux.filter(function (b) { return b.auto && b.actif; });
     if (autos.length && s.planif.available && !s.planif.installed) al.push(['<b>' + autos.length + ' bail(s) en envoi automatique</b> mais la planification Windows n’est pas activée.', 'auto', 'Activer']);
+    var aReactiver = s.baux.filter(function (b) { return b.auto_a_reactiver && !b.auto && b.actif; });
+    if (aReactiver.length) al.push(['<b>Envoi automatique coupé par la restauration</b> pour ' + esc(aReactiver.map(function (b) { return b.locataire; }).join(', ')) + '. Vérifiez l’historique, puis réactivez-le dans la fiche du bail.', 'baux', 'Voir']);
     (s.bloques || []).forEach(function (m) { al.push(['Envoi automatique <b>bloqué</b> pour <b>' + esc(m.locataire) + '</b> : loyer non reçu en ' + esc(m.mois.map(monthLabel).join(', ')) + '. Réactivez ce mois une fois le loyer reçu.', 'goto:' + m.mois[0], 'Voir']); });
     (s.manques || []).forEach(function (m) { al.push(['Quittance <b>' + esc(monthLabel(m.mois)) + '</b> de <b>' + esc(m.locataire) + '</b> non envoyée (mois passé).', 'goto:' + m.mois, 'Voir']); });
     $('alerts').innerHTML = al.map(function (a) { return '<div class="alert"><span>' + a[0] + '</span><button class="btn btn-sm btn-ghost" data-go="' + esc(a[1]) + '">' + a[2] + '</button></div>'; }).join('');
@@ -229,7 +231,12 @@
   $('importFile').addEventListener('change', function () {
     var file = this.files && this.files[0]; this.value = ''; if (!file) return;
     var r = new FileReader();
-    r.onload = function () { api('import-data', { text: r.result }).then(function (x) { toast(x.baux + ' bail(s) importé(s).', 'ok'); load(); }, fail); };
+    r.onload = function () { api('import-data', { text: r.result }).then(function (x) {
+      var msg = x.baux + ' bail(s) importé(s).';
+      if (x.auto_a_reactiver) msg += ' Envoi automatique coupé sur ' + x.auto_a_reactiver + ' bail(s) : à réactiver dans chaque fiche.';
+      if (x.historique_absent) msg += ' Cette sauvegarde ne contient pas d’historique : une quittance déjà envoyée pourrait repartir si vous réactivez l’automatique, vérifiez avant.';
+      toast(msg, x.historique_absent ? 'err' : 'ok'); load();
+    }, fail); };
     r.readAsText(file);
   });
 
